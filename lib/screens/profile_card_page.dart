@@ -43,12 +43,14 @@ class _ProfileCardPageState extends State<ProfileCardPage>
   late AnimationController _skipAnimationController;
   late AnimationController _undoAnimationController;
 
-  // Like animation values
+  // Like animation values (3 phases: flash, shrink+heart, slide right)
+  late Animation<double> _likeWhiteFlash;
   late Animation<double> _likeOverlayOpacity;
   late Animation<double> _likeIconScale;
   late Animation<double> _likeCardScale;
   late Animation<double> _likeCardOpacity;
   late Animation<double> _likeCardRotation;
+  late Animation<double> _likeCardTranslateX;
 
   // Skip animation values
   late Animation<double> _skipOverlayOpacity;
@@ -78,45 +80,92 @@ class _ProfileCardPageState extends State<ProfileCardPage>
   }
 
   void _setupAnimations() {
-    // Like Animation Controller (600ms)
+    // Like Animation Controller (800ms total)
+    // Phase 1: 0-150ms (white flash)
+    // Phase 2: 150-350ms (shrink + heart overlay)
+    // Phase 3: 350-800ms (slide right)
     _likeAnimationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 800),
     );
 
-    _likeOverlayOpacity = Tween<double>(begin: 0.0, end: 0.4).animate(
+    // Phase 1: White flash (0-150ms) - peaks at 100ms
+    _likeWhiteFlash =
+        TweenSequence<double>([
+          TweenSequenceItem(tween: Tween(begin: 0.0, end: 0.8), weight: 60),
+          TweenSequenceItem(tween: Tween(begin: 0.8, end: 0.0), weight: 40),
+        ]).animate(
+          CurvedAnimation(
+            parent: _likeAnimationController,
+            curve: const Interval(
+              0.0,
+              0.1875,
+              curve: Curves.easeOut,
+            ), // 0-150ms
+          ),
+        );
+
+    // Phase 2: Card shrinks (150-350ms) - 1.0 → 0.85
+    _likeCardScale = Tween<double>(begin: 1.0, end: 0.85).animate(
       CurvedAnimation(
         parent: _likeAnimationController,
-        curve: const Interval(0.0, 0.33, curve: Curves.easeOut),
+        curve: const Interval(
+          0.1875,
+          0.4375,
+          curve: Curves.easeOut,
+        ), // 150-350ms
       ),
     );
 
+    // Phase 2: Gradient overlay fades in (150-350ms) - 0% → 50%
+    _likeOverlayOpacity = Tween<double>(begin: 0.0, end: 0.5).animate(
+      CurvedAnimation(
+        parent: _likeAnimationController,
+        curve: const Interval(
+          0.1875,
+          0.4375,
+          curve: Curves.easeOut,
+        ), // 150-350ms
+      ),
+    );
+
+    // Phase 2: Heart icon scales up (150-350ms) - 0.5 → 1.2 with bounce
     _likeIconScale = Tween<double>(begin: 0.5, end: 1.2).animate(
       CurvedAnimation(
         parent: _likeAnimationController,
-        curve: const Interval(0.0, 0.33, curve: Curves.elasticOut),
+        curve: const Interval(
+          0.1875,
+          0.4375,
+          curve: Curves.elasticOut,
+        ), // 150-350ms
       ),
     );
 
-    _likeCardScale = Tween<double>(begin: 1.0, end: 0.95).animate(
+    // Phase 3: Card slides right (350-800ms) - 0 → 500px
+    _likeCardTranslateX = Tween<double>(begin: 0.0, end: 500.0).animate(
       CurvedAnimation(
         parent: _likeAnimationController,
-        curve: const Interval(0.33, 0.67, curve: Curves.easeOut),
+        curve: const Interval(
+          0.4375,
+          1.0,
+          curve: Curves.easeInOut,
+        ), // 350-800ms
       ),
     );
 
+    // Phase 3: No rotation during slide (keep at 0)
+    _likeCardRotation = Tween<double>(begin: 0.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _likeAnimationController,
+        curve: const Interval(0.4375, 1.0, curve: Curves.easeOut),
+      ),
+    );
+
+    // Phase 3: Card fades out (500-800ms) - 1.0 → 0.0
     _likeCardOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(
       CurvedAnimation(
         parent: _likeAnimationController,
-        curve: const Interval(0.67, 1.0, curve: Curves.easeOut),
-      ),
-    );
-
-    _likeCardRotation = Tween<double>(begin: 0.0, end: 0.087).animate(
-      // 5 degrees in radians
-      CurvedAnimation(
-        parent: _likeAnimationController,
-        curve: const Interval(0.33, 0.67, curve: Curves.easeOut),
+        curve: const Interval(0.625, 1.0, curve: Curves.easeOut), // 500-800ms
       ),
     );
 
@@ -280,6 +329,7 @@ class _ProfileCardPageState extends State<ProfileCardPage>
 
           if (_likeAnimationController.isAnimating ||
               _likeAnimationController.value > 0) {
+            translateX = _likeCardTranslateX.value; // Slide right
             scale = _likeCardScale.value;
             opacity = _likeCardOpacity.value;
             rotation = _likeCardRotation.value;
@@ -337,7 +387,12 @@ class _ProfileCardPageState extends State<ProfileCardPage>
                         ],
                       ),
 
-                      // Like overlay
+                      // White flash overlay (Phase 1 of Like animation)
+                      if (_likeAnimationController.isAnimating ||
+                          _likeAnimationController.value > 0)
+                        _buildWhiteFlashOverlay(),
+
+                      // Like heart overlay (Phase 2-3 of Like animation)
                       if (_likeAnimationController.isAnimating ||
                           _likeAnimationController.value > 0)
                         _buildLikeOverlay(),
@@ -353,6 +408,16 @@ class _ProfileCardPageState extends State<ProfileCardPage>
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildWhiteFlashOverlay() {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Container(
+          color: Colors.white.withValues(alpha: _likeWhiteFlash.value),
+        ),
       ),
     );
   }
