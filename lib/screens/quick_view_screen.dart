@@ -19,7 +19,7 @@ class QuickViewScreen extends StatelessWidget {
     final photoHeight = screenHeight * 0.55;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Profile Photo Container with Stickers and Vibe Badge
         Container(
@@ -97,7 +97,7 @@ class QuickViewScreen extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Name and Distance Row
                 Row(
@@ -116,11 +116,15 @@ class QuickViewScreen extends StatelessWidget {
                 const SizedBox(height: 8),
 
                 // Bio
-                Text(
-                  '✨ ${profile.bio}',
-                  style: VibelyTypography.bioText,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    '✨ ${profile.bio}',
+                    style: VibelyTypography.bioText,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.left,
+                  ),
                 ),
               ],
             ),

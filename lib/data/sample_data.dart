@@ -9,7 +9,8 @@ class SampleData {
     distanceKm: 2.3,
     profilePhotoUrl:
         'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&h=1200&fit=crop',
-    bio: 'Architect by day, jazz by night ✨\nLove spontaneous coffee plans',
+    bio:
+        'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.✨',
     vibeMatchPercent: 92,
     stickers: [
       PersonalitySticker(emoji: '🧠', text: 'Deep Thinker'),

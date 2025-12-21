@@ -265,11 +265,6 @@ class _ProfileCardPageState extends State<ProfileCardPage> {
                           color: Colors.white,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        '〜',
-                        style: TextStyle(fontSize: 20, color: Colors.white),
-                      ),
                     ],
                   ),
                 ),
