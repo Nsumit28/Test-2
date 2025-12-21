@@ -364,8 +364,12 @@ class _ProfileCardPageState extends State<ProfileCardPage>
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                VibelyColors.primary.withOpacity(_likeOverlayOpacity.value),
-                VibelyColors.secondary.withOpacity(_likeOverlayOpacity.value),
+                VibelyColors.primary.withValues(
+                  alpha: _likeOverlayOpacity.value * 1.25,
+                ), // 50% max
+                VibelyColors.secondary.withValues(
+                  alpha: _likeOverlayOpacity.value * 1.25,
+                ),
               ],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
@@ -374,7 +378,17 @@ class _ProfileCardPageState extends State<ProfileCardPage>
           child: Center(
             child: Transform.scale(
               scale: _likeIconScale.value,
-              child: const Icon(Icons.favorite, color: Colors.white, size: 120),
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Text('❤️', style: TextStyle(fontSize: 70)),
+                ),
+              ),
             ),
           ),
         ),
@@ -386,11 +400,34 @@ class _ProfileCardPageState extends State<ProfileCardPage>
     return Positioned.fill(
       child: IgnorePointer(
         child: Container(
-          color: VibelyColors.primary.withOpacity(_skipOverlayOpacity.value),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFF4A5568).withValues(
+                  alpha: _skipOverlayOpacity.value * 1.33,
+                ), // Gray 600, 40% max
+                const Color(0xFF718096).withValues(
+                  alpha: _skipOverlayOpacity.value * 1.33,
+                ), // Gray 400
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
           child: Center(
             child: Transform.scale(
               scale: _skipIconScale.value,
-              child: const Icon(Icons.close, color: Colors.white, size: 100),
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Icon(Icons.close, color: Colors.white, size: 80),
+                ),
+              ),
             ),
           ),
         ),
