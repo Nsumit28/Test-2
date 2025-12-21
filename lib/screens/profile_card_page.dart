@@ -8,23 +8,61 @@ import 'vibe_gallery_screen.dart';
 import 'favorites_screen.dart';
 
 /// Main profile card page with PageView for 3 horizontal swipe screens
-/// Contains AppBar, screens, progress indicator, and fixed CTAs
+/// Contains AppBar, screens, progress indicator, and fixed CTAs with Bumble-style animations
 class ProfileCardPage extends StatefulWidget {
   final ProfileModel profile;
+  final VoidCallback? onVibeSignal;
+  final VoidCallback? onSkip;
+  final VoidCallback? onUndo;
+  final bool canUndo;
 
-  const ProfileCardPage({super.key, required this.profile});
+  const ProfileCardPage({
+    super.key,
+    required this.profile,
+    this.onVibeSignal,
+    this.onSkip,
+    this.onUndo,
+    this.canUndo = false,
+  });
 
   @override
   State<ProfileCardPage> createState() => _ProfileCardPageState();
 }
 
-class _ProfileCardPageState extends State<ProfileCardPage> {
+class _ProfileCardPageState extends State<ProfileCardPage>
+    with TickerProviderStateMixin {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
   // Timer state - starts at 3 hours (10800 seconds)
   Timer? _countdownTimer;
   int _remainingSeconds = 10800; // 3 hours = 3 * 60 * 60
+
+  // Animation controllers
+  late AnimationController _likeAnimationController;
+  late AnimationController _skipAnimationController;
+  late AnimationController _undoAnimationController;
+
+  // Like animation values
+  late Animation<double> _likeOverlayOpacity;
+  late Animation<double> _likeIconScale;
+  late Animation<double> _likeCardScale;
+  late Animation<double> _likeCardOpacity;
+  late Animation<double> _likeCardRotation;
+
+  // Skip animation values
+  late Animation<double> _skipOverlayOpacity;
+  late Animation<double> _skipIconScale;
+  late Animation<double> _skipCardTranslateX;
+  late Animation<double> _skipCardOpacity;
+  late Animation<double> _skipCardRotation;
+
+  // Undo animation values
+  late Animation<double> _undoCardTranslateX;
+  late Animation<double> _undoCardOpacity;
+  late Animation<double> _undoCardScale;
+
+  bool _isAnimating = false;
 
   final List<String> _screenTitles = [
     'Quick View',
@@ -36,6 +74,124 @@ class _ProfileCardPageState extends State<ProfileCardPage> {
   void initState() {
     super.initState();
     _startCountdownTimer();
+    _setupAnimations();
+  }
+
+  void _setupAnimations() {
+    // Like Animation Controller (600ms)
+    _likeAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _likeOverlayOpacity = Tween<double>(begin: 0.0, end: 0.4).animate(
+      CurvedAnimation(
+        parent: _likeAnimationController,
+        curve: const Interval(0.0, 0.33, curve: Curves.easeOut),
+      ),
+    );
+
+    _likeIconScale = Tween<double>(begin: 0.5, end: 1.2).animate(
+      CurvedAnimation(
+        parent: _likeAnimationController,
+        curve: const Interval(0.0, 0.33, curve: Curves.elasticOut),
+      ),
+    );
+
+    _likeCardScale = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(
+        parent: _likeAnimationController,
+        curve: const Interval(0.33, 0.67, curve: Curves.easeOut),
+      ),
+    );
+
+    _likeCardOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _likeAnimationController,
+        curve: const Interval(0.67, 1.0, curve: Curves.easeOut),
+      ),
+    );
+
+    _likeCardRotation = Tween<double>(begin: 0.0, end: 0.087).animate(
+      // 5 degrees in radians
+      CurvedAnimation(
+        parent: _likeAnimationController,
+        curve: const Interval(0.33, 0.67, curve: Curves.easeOut),
+      ),
+    );
+
+    // Skip Animation Controller (500ms)
+    _skipAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+
+    _skipOverlayOpacity = Tween<double>(begin: 0.0, end: 0.3).animate(
+      CurvedAnimation(
+        parent: _skipAnimationController,
+        curve: const Interval(0.0, 0.3, curve: Curves.easeInOut),
+      ),
+    );
+
+    _skipIconScale = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _skipAnimationController,
+        curve: const Interval(0.0, 0.3, curve: Curves.elasticOut),
+      ),
+    );
+
+    _skipCardTranslateX = Tween<double>(begin: 0.0, end: -400.0).animate(
+      CurvedAnimation(
+        parent: _skipAnimationController,
+        curve: const Interval(0.3, 1.0, curve: Curves.easeInOut),
+      ),
+    );
+
+    _skipCardOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _skipAnimationController,
+        curve: const Interval(0.6, 1.0, curve: Curves.easeInOut),
+      ),
+    );
+
+    _skipCardRotation = Tween<double>(begin: 0.0, end: -0.14).animate(
+      // -8 degrees in radians
+      CurvedAnimation(
+        parent: _skipAnimationController,
+        curve: const Interval(0.3, 0.6, curve: Curves.easeInOut),
+      ),
+    );
+
+    // Undo Animation Controller (600ms)
+    _undoAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _undoCardTranslateX = Tween<double>(begin: -400.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _undoAnimationController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+
+    _undoCardOpacity = Tween<double>(begin: 0.3, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _undoAnimationController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+
+    _undoCardScale =
+        TweenSequence<double>([
+          TweenSequenceItem(tween: Tween(begin: 0.95, end: 1.05), weight: 60),
+          TweenSequenceItem(tween: Tween(begin: 1.05, end: 1.0), weight: 40),
+        ]).animate(
+          CurvedAnimation(
+            parent: _undoAnimationController,
+            curve: const Interval(0.5, 1.0, curve: Curves.elasticOut),
+          ),
+        );
   }
 
   void _startCountdownTimer() {
@@ -57,10 +213,50 @@ class _ProfileCardPageState extends State<ProfileCardPage> {
     return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
+  void _handleVibeSignal() async {
+    if (_isAnimating) return;
+    setState(() => _isAnimating = true);
+
+    await _likeAnimationController.forward();
+    _likeAnimationController.reset();
+
+    setState(() => _isAnimating = false);
+    widget.onVibeSignal?.call();
+  }
+
+  void _handleSkip() async {
+    if (_isAnimating) return;
+    setState(() => _isAnimating = true);
+
+    await _skipAnimationController.forward();
+    _skipAnimationController.reset();
+
+    setState(() => _isAnimating = false);
+    widget.onSkip?.call();
+  }
+
+  void _handleUndo() async {
+    if (_isAnimating || !widget.canUndo) return;
+    debugPrint('Undo tapped');
+    widget.onUndo?.call();
+
+    // Play undo animation after new profile loads
+    await Future.delayed(const Duration(milliseconds: 50));
+    await _undoAnimationController.forward();
+    _undoAnimationController.reset();
+  }
+
+  void _handleSettings() {
+    debugPrint('Settings/Filter tapped');
+  }
+
   @override
   void dispose() {
     _countdownTimer?.cancel();
     _pageController.dispose();
+    _likeAnimationController.dispose();
+    _skipAnimationController.dispose();
+    _undoAnimationController.dispose();
     super.dispose();
   }
 
@@ -69,39 +265,135 @@ class _ProfileCardPageState extends State<ProfileCardPage> {
     return Scaffold(
       backgroundColor: VibelyColors.background,
       appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          // Main content with PageView
-          Expanded(
-            child: Column(
-              children: [
-                // PageView screens
-                Expanded(
-                  child: PageView(
-                    controller: _pageController,
-                    physics: const BouncingScrollPhysics(),
-                    onPageChanged: (page) {
-                      setState(() {
-                        _currentPage = page;
-                      });
-                    },
+      body: AnimatedBuilder(
+        animation: Listenable.merge([
+          _likeAnimationController,
+          _skipAnimationController,
+          _undoAnimationController,
+        ]),
+        builder: (context, child) {
+          // Calculate transforms based on which animation is active
+          double translateX = 0.0;
+          double opacity = 1.0;
+          double scale = 1.0;
+          double rotation = 0.0;
+
+          if (_likeAnimationController.isAnimating ||
+              _likeAnimationController.value > 0) {
+            scale = _likeCardScale.value;
+            opacity = _likeCardOpacity.value;
+            rotation = _likeCardRotation.value;
+          } else if (_skipAnimationController.isAnimating ||
+              _skipAnimationController.value > 0) {
+            translateX = _skipCardTranslateX.value;
+            opacity = _skipCardOpacity.value;
+            rotation = _skipCardRotation.value;
+          } else if (_undoAnimationController.isAnimating ||
+              _undoAnimationController.value > 0) {
+            translateX = _undoCardTranslateX.value;
+            opacity = _undoCardOpacity.value;
+            scale = _undoCardScale.value;
+          }
+
+          return Transform.translate(
+            offset: Offset(translateX, 0),
+            child: Transform.rotate(
+              angle: rotation,
+              child: Transform.scale(
+                scale: scale,
+                child: Opacity(
+                  opacity: opacity,
+                  child: Stack(
                     children: [
-                      QuickViewScreen(profile: widget.profile),
-                      VibeGalleryScreen(profile: widget.profile),
-                      FavoritesScreen(profile: widget.profile),
+                      // Main content
+                      Column(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child: PageView(
+                                    controller: _pageController,
+                                    physics: const BouncingScrollPhysics(),
+                                    onPageChanged: (page) {
+                                      setState(() {
+                                        _currentPage = page;
+                                      });
+                                    },
+                                    children: [
+                                      QuickViewScreen(profile: widget.profile),
+                                      VibeGalleryScreen(
+                                        profile: widget.profile,
+                                      ),
+                                      FavoritesScreen(profile: widget.profile),
+                                    ],
+                                  ),
+                                ),
+                                _buildProgressIndicator(),
+                              ],
+                            ),
+                          ),
+                          _buildCTAButtons(),
+                        ],
+                      ),
+
+                      // Like overlay
+                      if (_likeAnimationController.isAnimating ||
+                          _likeAnimationController.value > 0)
+                        _buildLikeOverlay(),
+
+                      // Skip overlay
+                      if (_skipAnimationController.isAnimating ||
+                          _skipAnimationController.value > 0)
+                        _buildSkipOverlay(),
                     ],
                   ),
                 ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
-                // Progress Indicator
-                _buildProgressIndicator(),
+  Widget _buildLikeOverlay() {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                VibelyColors.primary.withOpacity(_likeOverlayOpacity.value),
+                VibelyColors.secondary.withOpacity(_likeOverlayOpacity.value),
               ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
             ),
           ),
+          child: Center(
+            child: Transform.scale(
+              scale: _likeIconScale.value,
+              child: const Icon(Icons.favorite, color: Colors.white, size: 120),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
-          // Fixed CTA Buttons
-          _buildCTAButtons(),
-        ],
+  Widget _buildSkipOverlay() {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Container(
+          color: VibelyColors.primary.withOpacity(_skipOverlayOpacity.value),
+          child: Center(
+            child: Transform.scale(
+              scale: _skipIconScale.value,
+              child: const Icon(Icons.close, color: Colors.white, size: 100),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -119,7 +411,7 @@ class _ProfileCardPageState extends State<ProfileCardPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
             decoration: BoxDecoration(
-              color: VibelyColors.cardBackground, // Soft Peach #FFF5F0
+              color: VibelyColors.cardBackground,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -127,7 +419,7 @@ class _ProfileCardPageState extends State<ProfileCardPage> {
               style: VibelyTypography.label.copyWith(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: VibelyColors.secondary, // Sunset Orange #E68161
+                color: VibelyColors.secondary,
               ),
             ),
           ),
@@ -138,31 +430,27 @@ class _ProfileCardPageState extends State<ProfileCardPage> {
         style: VibelyTypography.label.copyWith(
           fontSize: 14,
           fontWeight: FontWeight.w400,
-          color: VibelyColors.textSecondary, // Slate Medium #626C71
+          color: VibelyColors.textSecondary,
         ),
       ),
       actions: [
-        // Settings/Filter Icon
         IconButton(
-          onPressed: () {
-            debugPrint('Settings/Filter tapped');
-          },
+          onPressed: _handleSettings,
           icon: const Icon(
             Icons.tune,
-            color: VibelyColors.textPrimary, // Deep Espresso #1F2121
+            color: VibelyColors.textPrimary,
             size: 24,
           ),
         ),
-        // Undo Icon
         Padding(
           padding: const EdgeInsets.only(right: 8),
           child: IconButton(
-            onPressed: () {
-              debugPrint('Undo tapped');
-            },
-            icon: const Icon(
+            onPressed: widget.canUndo ? _handleUndo : null,
+            icon: Icon(
               Icons.undo,
-              color: VibelyColors.textPrimary, // Deep Espresso #1F2121
+              color: widget.canUndo
+                  ? VibelyColors.textPrimary
+                  : VibelyColors.textSecondary.withOpacity(0.4),
               size: 24,
             ),
           ),
@@ -180,8 +468,8 @@ class _ProfileCardPageState extends State<ProfileCardPage> {
           final isActive = index == _currentPage;
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 2),
-            width: isActive ? 48 : 32, // Updated: 60→48, 40→32
-            height: isActive ? 2 : 1.5, // Updated: 3→2, 2→1.5
+            width: isActive ? 48 : 32,
+            height: isActive ? 2 : 1.5,
             decoration: BoxDecoration(
               color: isActive
                   ? VibelyColors.secondary
@@ -206,36 +494,37 @@ class _ProfileCardPageState extends State<ProfileCardPage> {
             Expanded(
               flex: 1,
               child: GestureDetector(
-                onTap: () {
-                  // Handle skip action
-                  debugPrint('Skip tapped');
-                },
-                child: Container(
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(
-                      color: VibelyColors.borderGray,
-                      width: 1.5,
+                onTap: _isAnimating ? null : _handleSkip,
+                child: AnimatedOpacity(
+                  opacity: _isAnimating ? 0.5 : 1.0,
+                  duration: const Duration(milliseconds: 150),
+                  child: Container(
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(
+                        color: VibelyColors.borderGray,
+                        width: 1.5,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.close,
-                        color: VibelyColors.textSecondary,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Skip',
-                        style: VibelyTypography.button.copyWith(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.close,
                           color: VibelyColors.textSecondary,
+                          size: 20,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Text(
+                          'Skip',
+                          style: VibelyTypography.button.copyWith(
+                            color: VibelyColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -246,26 +535,27 @@ class _ProfileCardPageState extends State<ProfileCardPage> {
             Expanded(
               flex: 2,
               child: GestureDetector(
-                onTap: () {
-                  // Handle vibe signal action
-                  debugPrint('Vibe Signal tapped');
-                },
-                child: Container(
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: VibelyColors.primaryGradient,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Vibe Signal',
-                        style: VibelyTypography.button.copyWith(
-                          color: Colors.white,
+                onTap: _isAnimating ? null : _handleVibeSignal,
+                child: AnimatedOpacity(
+                  opacity: _isAnimating ? 0.5 : 1.0,
+                  duration: const Duration(milliseconds: 150),
+                  child: Container(
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: VibelyColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Vibe Signal',
+                          style: VibelyTypography.button.copyWith(
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
