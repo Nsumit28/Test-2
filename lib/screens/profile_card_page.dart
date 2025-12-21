@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../constants/typography.dart';
@@ -21,19 +22,44 @@ class _ProfileCardPageState extends State<ProfileCardPage> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
+  // Timer state - starts at 3 hours (10800 seconds)
+  Timer? _countdownTimer;
+  int _remainingSeconds = 10800; // 3 hours = 3 * 60 * 60
+
   final List<String> _screenTitles = [
     'Quick View',
     'Vibe Gallery',
     'Favorites',
   ];
-  final List<String> _vibeNames = [
-    '☕ Coffee Vibe',
-    "Priya's Vibe",
-    "Priya's Favorites",
-  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _startCountdownTimer();
+  }
+
+  void _startCountdownTimer() {
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_remainingSeconds > 0) {
+        setState(() {
+          _remainingSeconds--;
+        });
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  String _formatTime(int totalSeconds) {
+    final hours = totalSeconds ~/ 3600;
+    final minutes = (totalSeconds % 3600) ~/ 60;
+    final seconds = totalSeconds % 60;
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
 
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -85,36 +111,60 @@ class _ProfileCardPageState extends State<ProfileCardPage> {
       backgroundColor: Colors.white,
       elevation: 0,
       centerTitle: true,
+      automaticallyImplyLeading: false,
+      leadingWidth: 120,
       leading: Padding(
         padding: const EdgeInsets.only(left: 16),
         child: Center(
-          child: Text(
-            _vibeNames[_currentPage],
-            style: VibelyTypography.label.copyWith(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            decoration: BoxDecoration(
+              color: VibelyColors.cardBackground, // Soft Peach #FFF5F0
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              _formatTime(_remainingSeconds),
+              style: VibelyTypography.label.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: VibelyColors.secondary, // Sunset Orange #E68161
+              ),
             ),
           ),
         ),
       ),
-      leadingWidth: 140,
       title: Text(
         _screenTitles[_currentPage],
         style: VibelyTypography.label.copyWith(
           fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: VibelyColors.textSecondary,
+          fontWeight: FontWeight.w400,
+          color: VibelyColors.textSecondary, // Slate Medium #626C71
         ),
       ),
       actions: [
+        // Settings/Filter Icon
         IconButton(
           onPressed: () {
-            Navigator.of(context).maybePop();
+            debugPrint('Settings/Filter tapped');
           },
           icon: const Icon(
-            Icons.close,
-            color: VibelyColors.textPrimary,
+            Icons.tune,
+            color: VibelyColors.textPrimary, // Deep Espresso #1F2121
             size: 24,
+          ),
+        ),
+        // Undo Icon
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: IconButton(
+            onPressed: () {
+              debugPrint('Undo tapped');
+            },
+            icon: const Icon(
+              Icons.undo,
+              color: VibelyColors.textPrimary, // Deep Espresso #1F2121
+              size: 24,
+            ),
           ),
         ),
       ],
@@ -130,8 +180,8 @@ class _ProfileCardPageState extends State<ProfileCardPage> {
           final isActive = index == _currentPage;
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 2),
-            width: isActive ? 60 : 40,
-            height: isActive ? 3 : 2,
+            width: isActive ? 48 : 32, // Updated: 60→48, 40→32
+            height: isActive ? 2 : 1.5, // Updated: 3→2, 2→1.5
             decoration: BoxDecoration(
               color: isActive
                   ? VibelyColors.secondary
