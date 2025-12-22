@@ -332,7 +332,7 @@ class _ProfileCardPageState extends State<ProfileCardPage>
             translateX = _likeCardTranslateX.value; // Slide right
             scale = _likeCardScale.value;
             opacity = _likeCardOpacity.value;
-            rotation = _likeCardRotation.value;
+            // No rotation for Like animation - slides straight
           } else if (_skipAnimationController.isAnimating ||
               _skipAnimationController.value > 0) {
             translateX = _skipCardTranslateX.value;
