@@ -16,7 +16,8 @@ class QuickViewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final photoHeight = screenHeight * 0.55;
+    final photoHeight =
+        screenHeight * 0.48; // Increased from 0.42 for bigger image
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -67,7 +68,11 @@ class QuickViewScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (int i = 0; i < profile.stickers.length; i++) ...[
+                    for (
+                      int i = 0;
+                      i < profile.stickers.length && i < 2;
+                      i++
+                    ) ...[
                       PersonalityStickerWidget(
                         emoji: profile.stickers[i].emoji,
                         text: profile.stickers[i].text,
@@ -75,8 +80,8 @@ class QuickViewScreen extends StatelessWidget {
                             ? VibelyColors.secondary
                             : VibelyColors.primary,
                       ),
-                      if (i < profile.stickers.length - 1)
-                        const SizedBox(height: 12),
+                      if (i < 1 && profile.stickers.length > 1)
+                        const SizedBox(height: 8),
                     ],
                   ],
                 ),
@@ -92,42 +97,38 @@ class QuickViewScreen extends StatelessWidget {
           ),
         ),
 
-        // Info Section
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Name and Distance Row
-                Row(
-                  children: [
-                    Text(
-                      '${profile.name}, ${profile.age}',
-                      style: VibelyTypography.nameText,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      '📍 ${profile.distanceKm} km',
-                      style: VibelyTypography.distanceText,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-
-                // Bio
-                SizedBox(
-                  width: double.infinity,
-                  child: Text(
-                    '✨ ${profile.bio}',
-                    style: VibelyTypography.bioText,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.left,
+        // Info Section - Compact
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Name and Distance Row
+              Row(
+                children: [
+                  Text(
+                    '${profile.name}, ${profile.age}',
+                    style: VibelyTypography.nameText,
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '📍 ${profile.distanceKm} km',
+                    style: VibelyTypography.distanceText,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+
+              // Bio - Limited to 4 lines max
+              Text(
+                '✨ ${profile.bio}',
+                style: VibelyTypography.bioText,
+                maxLines: 4, // Limited to 4 lines
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.left,
+              ),
+            ],
           ),
         ),
       ],

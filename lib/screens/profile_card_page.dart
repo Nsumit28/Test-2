@@ -38,6 +38,10 @@ class _ProfileCardPageState extends State<ProfileCardPage>
   Timer? _countdownTimer;
   int _remainingSeconds = 10800; // 3 hours = 3 * 60 * 60
 
+  // Page indicator visibility (auto-hide feature)
+  bool _showPageIndicator = false;
+  Timer? _pageIndicatorTimer;
+
   // Animation controllers
   late AnimationController _likeAnimationController;
   late AnimationController _skipAnimationController;
@@ -302,6 +306,7 @@ class _ProfileCardPageState extends State<ProfileCardPage>
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    _pageIndicatorTimer?.cancel();
     _pageController.dispose();
     _likeAnimationController.dispose();
     _skipAnimationController.dispose();
@@ -368,7 +373,20 @@ class _ProfileCardPageState extends State<ProfileCardPage>
                                     onPageChanged: (page) {
                                       setState(() {
                                         _currentPage = page;
+                                        _showPageIndicator = true;
                                       });
+                                      // Cancel previous timer & start new auto-hide timer
+                                      _pageIndicatorTimer?.cancel();
+                                      _pageIndicatorTimer = Timer(
+                                        const Duration(seconds: 2),
+                                        () {
+                                          if (mounted) {
+                                            setState(() {
+                                              _showPageIndicator = false;
+                                            });
+                                          }
+                                        },
+                                      );
                                     },
                                     children: [
                                       QuickViewScreen(profile: widget.profile),
@@ -562,24 +580,30 @@ class _ProfileCardPageState extends State<ProfileCardPage>
   }
 
   Widget _buildProgressIndicator() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(3, (index) {
-          final isActive = index == _currentPage;
-          return Container(
-            margin: const EdgeInsets.symmetric(horizontal: 2),
-            width: isActive ? 48 : 32,
-            height: isActive ? 2 : 1.5,
-            decoration: BoxDecoration(
-              color: isActive
-                  ? VibelyColors.secondary
-                  : VibelyColors.progressInactive,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          );
-        }),
+    return AnimatedOpacity(
+      opacity: _showPageIndicator ? 1.0 : 0.0,
+      duration: const Duration(milliseconds: 300),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        height: _showPageIndicator ? 18 : 0, // Collapse when hidden
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(3, (index) {
+            final isActive = index == _currentPage;
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              width: isActive ? 48 : 32,
+              height: isActive ? 2 : 1.5,
+              decoration: BoxDecoration(
+                color: isActive
+                    ? VibelyColors.secondary
+                    : VibelyColors.progressInactive,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            );
+          }),
+        ),
       ),
     );
   }
@@ -587,7 +611,7 @@ class _ProfileCardPageState extends State<ProfileCardPage>
   Widget _buildCTAButtons() {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12), // Reduced from 16
       child: SafeArea(
         top: false,
         child: Row(
