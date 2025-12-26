@@ -66,7 +66,7 @@ class SampleData {
       profilePhotoUrl:
           'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&h=1200&fit=crop',
       bio:
-          'Yoga instructor & plant mom 🌱 Seeking good conversations and meaningful connections.',
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc at lorem nec libero consectetur consectetur. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia.',
       vibeMatchPercent: 88,
       stickers: [
         PersonalitySticker(emoji: '🧘', text: 'Zen Master'),
