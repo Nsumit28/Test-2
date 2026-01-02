@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import '../constants/colors.dart';
+import '../constants/typography.dart';
 
 /// End-of-Queue Screen
 /// Shows when user has swiped through all available profiles
@@ -19,10 +21,34 @@ class _EndOfQueueScreenState extends State<EndOfQueueScreen> {
   bool _isVideoInitialized = false;
   bool _hasVideoError = false;
 
+  // Timer state - continues from where it left off (starts at 3 hours)
+  Timer? _countdownTimer;
+  int _remainingSeconds = 10800; // 3 hours = 3 * 60 * 60
+
   @override
   void initState() {
     super.initState();
     _initializeVideo();
+    _startCountdownTimer();
+  }
+
+  void _startCountdownTimer() {
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_remainingSeconds > 0) {
+        setState(() {
+          _remainingSeconds--;
+        });
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  String _formatTime(int totalSeconds) {
+    final hours = totalSeconds ~/ 3600;
+    final minutes = (totalSeconds % 3600) ~/ 60;
+    final seconds = totalSeconds % 60;
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   Future<void> _initializeVideo() async {
@@ -51,8 +77,14 @@ class _EndOfQueueScreenState extends State<EndOfQueueScreen> {
     }
   }
 
+  void _handleSettings() {
+    debugPrint('Settings/Filter tapped');
+    widget.onAdjustFilters?.call();
+  }
+
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     _videoController?.dispose();
     super.dispose();
   }
@@ -61,12 +93,14 @@ class _EndOfQueueScreenState extends State<EndOfQueueScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: _buildAppBar(),
       body: SafeArea(
+        top: false,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(
             children: [
-              const SizedBox(height: 80),
+              const SizedBox(height: 40),
 
               // Circular Video Container
               _buildCircularVideo(),
@@ -113,6 +147,61 @@ class _EndOfQueueScreenState extends State<EndOfQueueScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      centerTitle: true,
+      automaticallyImplyLeading: false,
+      leadingWidth: 120,
+      // Timer on the left
+      leading: Padding(
+        padding: const EdgeInsets.only(left: 16),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            decoration: BoxDecoration(
+              color: VibelyColors.cardBackground,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              _formatTime(_remainingSeconds),
+              style: VibelyTypography.label.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: VibelyColors.secondary,
+              ),
+            ),
+          ),
+        ),
+      ),
+      // No title (page name omitted per request)
+      title: null,
+      // Filter and Undo icons on the right
+      actions: [
+        IconButton(
+          onPressed: _handleSettings,
+          icon: const Icon(
+            Icons.tune,
+            color: VibelyColors.textPrimary,
+            size: 24,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: IconButton(
+            onPressed: null, // Always inactive on this screen
+            icon: Icon(
+              Icons.undo,
+              color: VibelyColors.textSecondary.withValues(alpha: 0.4),
+              size: 24,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
