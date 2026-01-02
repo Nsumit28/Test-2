@@ -4,6 +4,7 @@ import 'constants/colors.dart';
 import 'screens/profile_card_page.dart';
 import 'screens/chat_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/end_of_queue_screen.dart';
 import 'data/sample_data.dart';
 import 'models/profile_model.dart';
 
@@ -227,6 +228,7 @@ class _VibeScreenState extends State<VibeScreen> {
   final List<ProfileModel> _profiles = SampleData.sampleProfiles;
   int _currentProfileIndex = 0;
   final List<int> _skippedProfiles = [];
+  bool _isQueueExhausted = false;
 
   ProfileModel get currentProfile => _profiles[_currentProfileIndex];
   bool get canUndo => _skippedProfiles.isNotEmpty;
@@ -249,6 +251,7 @@ class _VibeScreenState extends State<VibeScreen> {
       debugPrint('↶ Undo - Going back to ${_profiles[previousIndex].name}');
       setState(() {
         _currentProfileIndex = previousIndex;
+        _isQueueExhausted = false; // Back to browsing
       });
     } else {
       debugPrint('↶ Undo - No profiles to go back to');
@@ -261,12 +264,30 @@ class _VibeScreenState extends State<VibeScreen> {
         _currentProfileIndex++;
       });
     } else {
-      debugPrint('No more profiles available!');
+      debugPrint('No more profiles available! Showing End of Queue screen.');
+      setState(() {
+        _isQueueExhausted = true;
+      });
     }
+  }
+
+  void _onAdjustFilters() {
+    debugPrint('Adjust Filters tapped - resetting queue for demo');
+    // For demo: reset to beginning of queue
+    setState(() {
+      _currentProfileIndex = 0;
+      _skippedProfiles.clear();
+      _isQueueExhausted = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Show End of Queue screen when all profiles have been viewed
+    if (_isQueueExhausted) {
+      return EndOfQueueScreen(onAdjustFilters: _onAdjustFilters);
+    }
+
     return ProfileCardPage(
       key: ValueKey(currentProfile.id),
       profile: currentProfile,
